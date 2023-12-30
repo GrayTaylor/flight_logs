@@ -3,6 +3,7 @@ from geopy.distance import geodesic
 from typing import List
 import datetime as dt
 import pandas as pd
+from plotly.express import line_geo
 
 
 class FlightLogRecord:
@@ -76,3 +77,22 @@ def csv_to_flight_log(filename):
     df = pd.read_csv(filename)
     records = [csv_row_to_record(row) for _, row in df.iterrows()]
     return FlightLog(records)
+
+
+def plot_flight_logs(flight_logs: List[FlightLog], height=1000, width=1000,
+                     projection='orthographic', color_discrete_map=None):
+
+    all_data = pd.concat([log.as_df() for log in flight_logs])
+
+    fig = line_geo(all_data, lat='lat', lon='lon', color='callsign',
+                   projection=projection, height=height, width=width,
+                   color_discrete_map=color_discrete_map,
+                   hover_data={'altitude', 'date', 'time'},
+                   custom_data=['date', 'time', 'altitude'])
+
+    fig.layout.update(showlegend=False)
+    hover_lines = ["%{customdata[0]} %{customdata[1]}",
+                   "%{lat}, %{lon}", "%{customdata[2]}ft"]
+    fig.update_traces(hovertemplate="<br>".join(hover_lines))
+
+    return fig
